@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+
+enum Status {
+  active
+  closed
+  pending
+}
+
+enum Channel {
+  watsonx
+  threecx @map("3cx")
+}
+
+model Conversation {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  customer_id     String       @db.ObjectId
+  advisor_id      String?      @db.ObjectId
+  channel         Channel    
+  session_id      String     
+  status          Status     
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+  messages        Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  conversation_id String        @db.ObjectId
+  message_id      String?       @unique @db.ObjectId
+  channel         Channel
+  content         String?
+  type            String
+  direction       String
+  timestamp       DateTime      @default(now())
+  attachments     Attachment[]
+  conversation    Conversation  @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+type Attachment {
+  type String
+  url  String
+}
