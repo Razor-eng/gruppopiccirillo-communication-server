@@ -1,10 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConversationsController } from './conversations.controller';
 import { ConversationsService } from './conversations.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
-import { Channel, Status } from '@prisma/client';
+import { Status, ChannelName, SessionStatus } from 'src/types/enums';
 
 const mockConversationsService = {
   create: jest.fn(),
@@ -12,6 +11,7 @@ const mockConversationsService = {
   findOne: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
+  archive: jest.fn(),
 };
 
 describe('ConversationsController', () => {
@@ -22,7 +22,6 @@ describe('ConversationsController', () => {
       controllers: [ConversationsController],
       providers: [
         { provide: ConversationsService, useValue: mockConversationsService },
-        { provide: PrismaService, useValue: {} },
       ],
     }).compile();
 
@@ -37,10 +36,19 @@ describe('ConversationsController', () => {
   describe('create', () => {
     it('should create a conversation', async () => {
       const dto: CreateConversationDto = {
-        customer_id: 'cust123',
-        channel: Channel.watsonx,
-        session_id: 'sess123',
-        status: Status.active,
+        customer: {
+          id: 'cust123',
+          name: 'John Doe',
+          email: 'john@example.com',
+        },
+        channel: {
+          id: 'chan123',
+          name: ChannelName.waba,
+        },
+        session: {
+          id: 'sess123',
+          status: SessionStatus.open,
+        },
       };
       const expectedResult = { id: 'conv123', ...dto };
       mockConversationsService.create.mockResolvedValue(expectedResult);
@@ -77,7 +85,7 @@ describe('ConversationsController', () => {
   describe('update', () => {
     it('should update a conversation', async () => {
       const id = 'conv123';
-      const dto: UpdateConversationDto = { status: Status.closed };
+      const dto: UpdateConversationDto = { status: Status.inactive };
       const expectedResult = { id, ...dto };
       mockConversationsService.update.mockResolvedValue(expectedResult);
 
@@ -96,6 +104,18 @@ describe('ConversationsController', () => {
       const result = await controller.remove(id);
       expect(result).toEqual(expectedResult);
       expect(mockConversationsService.remove).toHaveBeenCalledWith(id);
+    });
+  });
+
+  describe('archive', () => {
+    it('should archive a conversation', async () => {
+      const id = 'conv123';
+      const expectedResult = { id };
+      mockConversationsService.archive.mockResolvedValue(expectedResult);
+
+      const result = await controller.archive(id);
+      expect(result).toEqual(expectedResult);
+      expect(mockConversationsService.archive).toHaveBeenCalledWith(id);
     });
   });
 });

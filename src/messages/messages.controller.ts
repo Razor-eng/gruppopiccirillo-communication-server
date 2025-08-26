@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,10 +18,12 @@ import {
   ApiParam,
   ApiBody,
   ApiSecurity,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
+import { MessageResponseDto } from './dto/message-response.dto';
 import { ApiKeyGuard } from 'src/common/guards/api-key.guard';
 
 @ApiTags('messages')
@@ -32,7 +35,11 @@ export class MessagesController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new message' })
-  @ApiResponse({ status: 201, description: 'Message created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Message created successfully',
+    type: MessageResponseDto,
+  })
   @ApiBadRequestResponse({ description: 'Invalid input data' })
   @ApiBody({ type: CreateMessageDto })
   create(@Body() body: CreateMessageDto) {
@@ -40,15 +47,31 @@ export class MessagesController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all messages' })
-  @ApiResponse({ status: 200, description: 'List of messages' })
-  findAll() {
-    return this.messagesService.findAll();
+  @ApiOperation({
+    summary: 'Get messages (optionally filtered by conversation)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of messages',
+    type: [MessageResponseDto],
+  })
+  @ApiQuery({
+    name: 'conversation_id',
+    required: false,
+    description: 'Optional conversation ID to filter messages',
+    type: String,
+  })
+  findAll(@Query('conversation_id') conversationId?: string) {
+    return this.messagesService.findAll(conversationId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a message by ID' })
-  @ApiResponse({ status: 200, description: 'Message found' })
+  @ApiResponse({
+    status: 200,
+    description: 'Message found',
+    type: MessageResponseDto,
+  })
   @ApiNotFoundResponse({ description: 'Message not found' })
   @ApiBadRequestResponse({ description: 'Invalid ID format' })
   @ApiParam({ name: 'id', description: 'Message ID', type: String })
@@ -58,7 +81,11 @@ export class MessagesController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a message' })
-  @ApiResponse({ status: 200, description: 'Message updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Message updated successfully',
+    type: MessageResponseDto,
+  })
   @ApiNotFoundResponse({ description: 'Message not found' })
   @ApiBadRequestResponse({ description: 'Invalid ID format or input data' })
   @ApiParam({ name: 'id', description: 'Message ID', type: String })
@@ -68,8 +95,11 @@ export class MessagesController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a message' })
-  @ApiResponse({ status: 200, description: 'Message deleted successfully' })
+  @ApiOperation({ summary: 'Soft delete a message (set to inactive)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Message soft deleted successfully',
+  })
   @ApiNotFoundResponse({ description: 'Message not found' })
   @ApiBadRequestResponse({ description: 'Invalid ID format' })
   @ApiParam({ name: 'id', description: 'Message ID', type: String })
@@ -82,6 +112,7 @@ export class MessagesController {
   @ApiResponse({
     status: 200,
     description: 'List of messages for conversation',
+    type: [MessageResponseDto],
   })
   @ApiNotFoundResponse({ description: 'Conversation not found' })
   @ApiBadRequestResponse({ description: 'Invalid ID format' })

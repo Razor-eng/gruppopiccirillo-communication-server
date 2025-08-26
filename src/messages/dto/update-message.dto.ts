@@ -1,23 +1,58 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray } from 'class-validator';
-import { AttachmentDto } from './create-message.dto';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsEnum,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { ActiveStatus, AttachType } from 'src/types/enums';
 
-export class UpdateMessageDto {
+class AttachmentDto {
   @ApiProperty({
-    description: 'Message content',
-    example: 'Updated content',
+    enum: AttachType,
+    description: 'Attachment type',
     required: false,
   })
+  @IsEnum(AttachType)
+  @IsOptional()
+  type?: AttachType;
+
+  @ApiProperty({ description: 'Attachment URL', required: false })
+  @IsString()
+  @IsOptional()
+  url?: string;
+
+  @ApiProperty({ description: 'MIME type', required: false })
+  @IsString()
+  @IsOptional()
+  mime_type?: string;
+}
+
+export class UpdateMessageDto {
+  @ApiProperty({ description: 'Message content', required: false })
   @IsString()
   @IsOptional()
   content?: string;
 
   @ApiProperty({
-    description: 'Attachments',
+    enum: ActiveStatus,
+    description: 'Message status',
+    required: false,
+  })
+  @IsEnum(ActiveStatus)
+  @IsOptional()
+  status?: ActiveStatus;
+
+  @ApiProperty({
     type: [AttachmentDto],
+    description: 'Attachments',
     required: false,
   })
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AttachmentDto)
   @IsOptional()
   attachments?: AttachmentDto[];
 }

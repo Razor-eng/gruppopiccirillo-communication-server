@@ -1,81 +1,44 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsString,
-  IsEnum,
-  IsOptional,
-  IsArray,
-  Matches,
-} from 'class-validator';
-import { Channel } from '@prisma/client';
+import { IsString, IsEnum, IsOptional, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { Direction, AttachType } from 'src/types/enums';
 
-export class AttachmentDto {
-  @ApiProperty({ description: 'Attachment type', example: 'image' })
-  @IsString()
-  type: string;
+class AttachmentDto {
+  @ApiProperty({ enum: AttachType, description: 'Attachment type' })
+  @IsEnum(AttachType)
+  type: AttachType;
 
-  @ApiProperty({
-    description: 'Attachment URL',
-    example: 'https://example.com/image.jpg',
-  })
+  @ApiProperty({ description: 'Attachment URL' })
   @IsString()
   url: string;
+
+  @ApiProperty({ description: 'MIME type', required: false })
+  @IsString()
+  @IsOptional()
+  mime_type?: string;
 }
 
 export class CreateMessageDto {
-  @ApiProperty({
-    description: 'Conversation ID (24-character MongoDB ObjectID)',
-    example: '66c9e1f2b3a4c5d6e7f89014',
-  })
+  @ApiProperty({ description: 'Conversation ID (MongoDB ObjectID)' })
   @IsString()
-  @Matches(/^[0-9a-fA-F]{24}$/, {
-    message: 'conversation_id must be a valid 24-character MongoDB ObjectID',
-  })
   conversation_id: string;
 
-  @ApiProperty({
-    description: 'Message ID (24-character MongoDB ObjectID)',
-    example: '66c9e1f2b3a4c5d6e7f89015',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  @Matches(/^[0-9a-fA-F]{24}$/, {
-    message: 'message_id must be a valid 24-character MongoDB ObjectID',
-  })
-  message_id?: string;
-
-  @ApiProperty({
-    description: 'Communication channel',
-    enum: Channel,
-    example: Channel.watsonx,
-  })
-  @IsEnum(Channel)
-  channel: Channel;
-
-  @ApiProperty({
-    description: 'Message content',
-    example: 'Hello, how can I assist you?',
-    required: false,
-  })
+  @ApiProperty({ description: 'Message content', required: false })
   @IsString()
   @IsOptional()
   content?: string;
 
-  @ApiProperty({ description: 'Message type', example: 'text' })
-  @IsString()
-  type: string;
-
-  @ApiProperty({ description: 'Message direction', example: 'incoming' })
-  @IsString()
-  direction: string;
+  @ApiProperty({ enum: Direction, description: 'Message direction' })
+  @IsEnum(Direction)
+  direction: Direction;
 
   @ApiProperty({
-    description: 'Attachments',
-    type: [AttachmentDto],
+    type: () => AttachmentDto,
+    description: 'Attachment (only one per message)',
     required: false,
-    example: [{ type: 'image', url: 'https://example.com/image.jpg' }],
   })
-  @IsArray()
+  @ValidateNested()
+  @Type(() => AttachmentDto)
   @IsOptional()
-  attachments?: AttachmentDto[];
+  attachment?: AttachmentDto;
 }

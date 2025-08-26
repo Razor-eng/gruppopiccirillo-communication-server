@@ -21,6 +21,7 @@ import {
 import { ConversationsService } from './conversations.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { ConversationResponseDto } from './dto/conversation-response.dto';
 import { ApiKeyGuard } from 'src/common/guards/api-key.guard';
 
 @ApiTags('conversations')
@@ -35,6 +36,7 @@ export class ConversationsController {
   @ApiResponse({
     status: 201,
     description: 'Conversation created successfully',
+    type: ConversationResponseDto,
   })
   @ApiBadRequestResponse({ description: 'Invalid input data' })
   @ApiBody({ type: CreateConversationDto })
@@ -43,15 +45,23 @@ export class ConversationsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all conversations' })
-  @ApiResponse({ status: 200, description: 'List of conversations' })
+  @ApiOperation({ summary: 'Get all active conversations' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of conversations',
+    type: [ConversationResponseDto],
+  })
   findAll() {
     return this.conversationsService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a conversation by ID' })
-  @ApiResponse({ status: 200, description: 'Conversation found' })
+  @ApiResponse({
+    status: 200,
+    description: 'Conversation found',
+    type: ConversationResponseDto,
+  })
   @ApiNotFoundResponse({ description: 'Conversation not found' })
   @ApiBadRequestResponse({ description: 'Invalid ID format' })
   @ApiParam({ name: 'id', description: 'Conversation ID', type: String })
@@ -64,6 +74,7 @@ export class ConversationsController {
   @ApiResponse({
     status: 200,
     description: 'Conversation updated successfully',
+    type: ConversationResponseDto,
   })
   @ApiNotFoundResponse({ description: 'Conversation not found' })
   @ApiBadRequestResponse({ description: 'Invalid ID format or input data' })
@@ -74,15 +85,28 @@ export class ConversationsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a conversation' })
+  @ApiOperation({ summary: 'Soft delete a conversation (set to inactive)' })
   @ApiResponse({
     status: 200,
-    description: 'Conversation deleted successfully',
+    description: 'Conversation soft deleted successfully',
   })
   @ApiNotFoundResponse({ description: 'Conversation not found' })
   @ApiBadRequestResponse({ description: 'Invalid ID format' })
   @ApiParam({ name: 'id', description: 'Conversation ID', type: String })
   remove(@Param('id') id: string) {
     return this.conversationsService.remove(id);
+  }
+
+  @Post(':id/archive')
+  @ApiOperation({ summary: 'Archive a conversation' })
+  @ApiResponse({
+    status: 200,
+    description: 'Conversation archived successfully',
+  })
+  @ApiNotFoundResponse({ description: 'Conversation not found' })
+  @ApiBadRequestResponse({ description: 'Invalid ID format' })
+  @ApiParam({ name: 'id', description: 'Conversation ID', type: String })
+  archive(@Param('id') id: string) {
+    return this.conversationsService.archive(id);
   }
 }
