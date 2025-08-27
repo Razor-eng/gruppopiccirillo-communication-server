@@ -228,7 +228,7 @@ export class MessagesService {
           conversation: {
             include: {
               customer: true,
-              advisor: true,
+              agent: true,
               channel: true,
               session: true,
             },

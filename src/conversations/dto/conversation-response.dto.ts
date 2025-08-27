@@ -16,17 +16,17 @@ class CustomerResponseDto {
   phone?: string;
 }
 
-class AdvisorResponseDto {
-  @ApiProperty({ description: 'Advisor ID' })
+class AgentResponseDto {
+  @ApiProperty({ description: 'Agent ID' })
   id: string;
 
-  @ApiProperty({ description: 'Advisor name', required: false })
+  @ApiProperty({ description: 'Agent name', required: false })
   name?: string;
 
-  @ApiProperty({ description: 'Advisor email', required: false })
+  @ApiProperty({ description: 'Agent email', required: false })
   email?: string;
 
-  @ApiProperty({ description: 'Advisor phone', required: false })
+  @ApiProperty({ description: 'Agent phone', required: false })
   phone?: string;
 }
 
@@ -57,11 +57,11 @@ export class ConversationResponseDto {
   customer: CustomerResponseDto;
 
   @ApiProperty({
-    type: AdvisorResponseDto,
-    description: 'Advisor information',
+    type: AgentResponseDto,
+    description: 'Agent information',
     required: false,
   })
-  advisor?: AdvisorResponseDto;
+  agent?: AgentResponseDto;
 
   @ApiProperty({ type: ChannelResponseDto, description: 'Channel information' })
   channel: ChannelResponseDto;

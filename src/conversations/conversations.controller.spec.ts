@@ -61,7 +61,6 @@ describe('ConversationsController', () => {
       };
       const expectedResult = { id: 'conv123', ...dto };
       mockConversationsService.create.mockResolvedValue(expectedResult);
-
       const result = await controller.create(dto);
       expect(result).toEqual(expectedResult);
       expect(mockConversationsService.create).toHaveBeenCalledWith(dto);
@@ -72,7 +71,6 @@ describe('ConversationsController', () => {
     it('should return all conversations', async () => {
       const expectedResult = [{ id: 'conv1' }];
       mockConversationsService.findAll.mockResolvedValue(expectedResult);
-
       const result = await controller.findAll();
       expect(result).toEqual(expectedResult);
       expect(mockConversationsService.findAll).toHaveBeenCalled();
@@ -84,7 +82,6 @@ describe('ConversationsController', () => {
       const id = 'conv123';
       const expectedResult = { id };
       mockConversationsService.findOne.mockResolvedValue(expectedResult);
-
       const result = await controller.findOne(id);
       expect(result).toEqual(expectedResult);
       expect(mockConversationsService.findOne).toHaveBeenCalledWith(id);
@@ -97,7 +94,6 @@ describe('ConversationsController', () => {
       const dto: UpdateConversationDto = { status: Status.inactive };
       const expectedResult = { id, ...dto };
       mockConversationsService.update.mockResolvedValue(expectedResult);
-
       const result = await controller.update(id, dto);
       expect(result).toEqual(expectedResult);
       expect(mockConversationsService.update).toHaveBeenCalledWith(id, dto);
@@ -109,7 +105,6 @@ describe('ConversationsController', () => {
       const id = 'conv123';
       const expectedResult = { id };
       mockConversationsService.remove.mockResolvedValue(expectedResult);
-
       const result = await controller.remove(id);
       expect(result).toEqual(expectedResult);
       expect(mockConversationsService.remove).toHaveBeenCalledWith(id);
@@ -121,7 +116,6 @@ describe('ConversationsController', () => {
       const id = 'conv123';
       const expectedResult = { id };
       mockConversationsService.archive.mockResolvedValue(expectedResult);
-
       const result = await controller.archive(id);
       expect(result).toEqual(expectedResult);
       expect(mockConversationsService.archive).toHaveBeenCalledWith(id);

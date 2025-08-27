@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConversationsService } from './conversations.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { Status, ChannelName, SessionStatus } from '../types/enums';
@@ -10,7 +10,7 @@ const mockPrismaService = {
   customer: {
     upsert: jest.fn(),
   },
-  advisor: {
+  agent: {
     upsert: jest.fn(),
   },
   channel: {
@@ -160,7 +160,7 @@ describe('ConversationsService', () => {
         where: { status: Status.active },
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
           messages: {
@@ -187,7 +187,7 @@ describe('ConversationsService', () => {
         where: { id },
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
           messages: {
@@ -241,7 +241,7 @@ describe('ConversationsService', () => {
         },
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
         },
@@ -268,7 +268,7 @@ describe('ConversationsService', () => {
         },
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
         },

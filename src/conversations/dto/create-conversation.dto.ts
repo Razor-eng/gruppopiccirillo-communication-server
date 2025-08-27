@@ -47,18 +47,18 @@ class CustomerDto {
   phone?: string;
 }
 
-// ===== Advisor DTO =====
-class AdvisorDto {
+// ===== Agent DTO =====
+class AgentDto {
   @ApiProperty({
     example: '507f1f77bcf86cd799439012',
-    description: 'Advisor ID (MongoDB ObjectID)',
+    description: 'Agent ID (MongoDB ObjectID)',
   })
   @IsString()
   id: string;
 
   @ApiPropertyOptional({
     example: 'Jane Smith',
-    description: 'Advisor name',
+    description: 'Agent name',
   })
   @IsString()
   @IsOptional()
@@ -66,7 +66,7 @@ class AdvisorDto {
 
   @ApiPropertyOptional({
     example: 'jane@example.com',
-    description: 'Advisor email',
+    description: 'Agent email',
   })
   @IsEmail()
   @IsOptional()
@@ -74,7 +74,7 @@ class AdvisorDto {
 
   @ApiPropertyOptional({
     example: '12025550123',
-    description: 'Advisor phone number',
+    description: 'Agent phone number',
   })
   @Matches(/^[0-9]{10,15}$/, {
     message: 'Phone number must be between 10 and 15 digits',
@@ -137,8 +137,8 @@ export class CreateConversationDto {
   customer: CustomerDto;
 
   @ApiPropertyOptional({
-    type: AdvisorDto,
-    description: 'Advisor information',
+    type: AgentDto,
+    description: 'Agent information',
     example: {
       id: '507f1f77bcf86cd799439012',
       name: 'Jane Smith',
@@ -148,9 +148,9 @@ export class CreateConversationDto {
   })
   @IsObject()
   @ValidateNested()
-  @Type(() => AdvisorDto)
+  @Type(() => AgentDto)
   @IsOptional()
-  advisor?: AdvisorDto;
+  agent?: AgentDto;
 
   @ApiProperty({
     type: ChannelDto,
@@ -214,7 +214,7 @@ export class CreateConversationExample {
         email: 'john@example.com',
         phone: '+1234567890',
       },
-      advisor: {
+      agent: {
         id: '507f1f77bcf86cd799439012',
         name: 'Jane Smith',
         email: 'jane@example.com',

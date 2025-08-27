@@ -8,86 +8,81 @@ datasource db {
 }
 
 model Conversation {
-  id                 String     @id @default(auto()) @map("_id") @db.ObjectId
-  customer_id        String     @db.ObjectId
-  customer           Customer   @relation(fields: [customer_id], references: [id], onDelete: Cascade)
-  advisor_id         String?    @db.ObjectId
-  advisor            Advisor?   @relation(fields: [advisor_id], references: [id], onDelete: Cascade)
-  channel_id         String     @db.ObjectId
-  channel            Channel    @relation(fields: [channel_id], references: [id], onDelete: Cascade)
-  session_id         String     @db.ObjectId
-  session            Session    @relation(fields: [session_id], references: [id], onDelete: Cascade)
-  created_by         String?
-  updated_by         String?
-  created_by_client  String?
-  updated_by_client  String?
-  created_at         DateTime   @default(now())
-  updated_at         DateTime   @updatedAt
-  status             Status
-  messages           Message[]
-
+  id                String         @id @default(auto()) @map("_id") @db.ObjectId
+  customer_id       String         @db.ObjectId
+  customer          Customer       @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  agent_id          String?        @db.ObjectId
+  agent             Agent?         @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+  channel_id        String         @db.ObjectId
+  channel           Channel        @relation(fields: [channel_id], references: [id], onDelete: Cascade)
+  session_id        String         @db.ObjectId
+  session           Session        @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  created_by        String?    
+  updated_by        String?    
+  created_by_client String?    
+  updated_by_client String?    
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+  status            Status
+  messages          Message[]
   @@index([status])
   @@index([created_at])
 }
 
 model Customer {
-  id           String         @id @default(auto()) @map("_id") @db.ObjectId
-  name         String?
-  email        String?
-  phone        String?
-  conversations Conversation[]
-
+  id                String          @id @default(auto()) @map("_id") @db.ObjectId
+  name              String?
+  email             String?
+  phone             String?
+  conversations     Conversation[]
   @@unique([email])
   @@unique([phone])
 }
 
-model Advisor {
-  id           String         @id @default(auto()) @map("_id") @db.ObjectId
-  name         String?
-  email        String?
-  phone        String?
-  conversations Conversation[]
-
+model Agent {
+  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
+  name               String?
+  email              String?
+  phone              String?
+  conversations      Conversation[]
   @@unique([email])
   @@unique([phone])
 }
 
 model Channel {
-  id           String         @id @default(auto()) @map("_id") @db.ObjectId
-  name         ChannelName
-  conversations Conversation[]
+  id                  String          @id @default(auto()) @map("_id") @db.ObjectId
+  name                ChannelName
+  conversations       Conversation[]
 }
 
 model Session {
-  id           String         @id @default(auto()) @map("_id") @db.ObjectId
-  status       SessionStatus
-  conversations Conversation[]
+  id                  String           @id @default(auto()) @map("_id") @db.ObjectId
+  status              SessionStatus
+  conversations       Conversation[]
 }
 
 model Message {
-  id              String       @id @default(auto()) @map("_id") @db.ObjectId
-  conversation_id String       @db.ObjectId
-  conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
-  content         String?
-  direction       Direction
-  attachment_id   String?      @db.ObjectId
-  attachment      Attachment?  @relation(fields: [attachment_id], references: [id])
-  timestamp       DateTime     @default(now())
-  status          ActiveStatus
-
+  id                   String           @id @default(auto()) @map("_id") @db.ObjectId
+  conversation_id      String           @db.ObjectId
+  conversation         Conversation     @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  content              String?    
+  direction            Direction    
+  attachment_id        String?          @db.ObjectId
+  attachment           Attachment?      @relation(fields: [attachment_id], references: [id])
+  timestamp            DateTime         @default(now())
+  status               ActiveStatus
   @@index([conversation_id])
   @@index([timestamp])
   @@index([status])
 }
 
 model Attachment {
-  id         String       @id @default(auto()) @map("_id") @db.ObjectId
-  type       AttachType
-  url        String
-  mime_type  String?
-  status     ActiveStatus
-  messages   Message[]
-
+  id                   String            @id @default(auto()) @map("_id") @db.ObjectId
+  type                 AttachType
+  url                  String
+  mime_type            String?
+  status               ActiveStatus
+  messages             Message[]
   @@index([status])
 }
 
@@ -99,7 +94,7 @@ enum Status {
 
 enum ChannelName {
   waba
-  threecx  @map("3cx")
+  threecx @map("3cx")
   watsonx
 }
 

@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { Status } from '../types/enums';
+import { ConversationResponseDto } from './dto/conversation-response.dto';
 
 @Injectable()
 export class ConversationsService {
@@ -16,13 +17,71 @@ export class ConversationsService {
     return /^[0-9a-fA-F]{24}$/.test(id);
   }
 
+  // Transform Prisma response to match ConversationResponseDto
+  private transformToResponseDto(conversation: any): ConversationResponseDto {
+    const {
+      customer_id,
+      agent_id,
+      channel_id,
+      session_id,
+      customer,
+      agent,
+      channel,
+      session,
+      messages,
+      ...rest
+    } = conversation;
+    return {
+      ...rest,
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+      },
+      agent: agent
+        ? {
+            id: agent.id,
+            name: agent.name,
+            email: agent.email,
+            phone: agent.phone,
+          }
+        : undefined,
+      channel: {
+        id: channel.id,
+        name: channel.name,
+      },
+      session: {
+        id: session.id,
+        status: session.status,
+      },
+      messages: messages?.map((msg: any) => ({
+        id: msg.id,
+        conversation_id: msg.conversation_id,
+        content: msg.content,
+        direction: msg.direction,
+        timestamp: msg.timestamp,
+        status: msg.status,
+        attachment_id: msg.attachment_id,
+        attachment: msg.attachment
+          ? {
+              type: msg.attachment.type,
+              url: msg.attachment.url,
+              mime_type: msg.attachment.mime_type,
+              status: msg.attachment.status,
+            }
+          : undefined,
+      })),
+    };
+  }
+
   async create(data: CreateConversationDto) {
     // Validate ObjectIDs
     if (!this.isValidObjectId(data.customer.id)) {
       throw new BadRequestException('Invalid customer ID format');
     }
-    if (data.advisor && !this.isValidObjectId(data.advisor.id)) {
-      throw new BadRequestException('Invalid advisor ID format');
+    if (data.agent && !this.isValidObjectId(data.agent.id)) {
+      throw new BadRequestException('Invalid agent ID format');
     }
     if (!this.isValidObjectId(data.channel.id)) {
       throw new BadRequestException('Invalid channel ID format');
@@ -38,15 +97,15 @@ export class ConversationsService {
       );
     }
 
-    // Validate that advisor has at least one identifier if provided
+    // Validate that agent has at least one identifier if provided
     if (
-      data.advisor &&
-      !data.advisor.name &&
-      !data.advisor.email &&
-      !data.advisor.phone
+      data.agent &&
+      !data.agent.name &&
+      !data.agent.email &&
+      !data.agent.phone
     ) {
       throw new BadRequestException(
-        'Advisor must have at least one identifier (name, email, or phone)',
+        'Agent must have at least one identifier (name, email, or phone)',
       );
     }
 
@@ -62,19 +121,19 @@ export class ConversationsService {
         create: data.customer,
       });
 
-      // Explicitly type the advisor variable
-      let advisor: { id: string } | null = null;
-      if (data.advisor) {
-        const advisorResult = await this.prisma.advisor.upsert({
-          where: { id: data.advisor.id },
+      // Explicitly type the agent variable
+      let agent: { id: string } | null = null;
+      if (data.agent) {
+        const agentResult = await this.prisma.agent.upsert({
+          where: { id: data.agent.id },
           update: {
-            name: data.advisor.name,
-            email: data.advisor.email,
-            phone: data.advisor.phone,
+            name: data.agent.name,
+            email: data.agent.email,
+            phone: data.agent.phone,
           },
-          create: data.advisor,
+          create: data.agent,
         });
-        advisor = advisorResult;
+        agent = agentResult;
       }
 
       const channel = await this.prisma.channel.upsert({
@@ -94,10 +153,10 @@ export class ConversationsService {
       });
 
       // Create the conversation with relations
-      return this.prisma.conversation.create({
+      const conversation = await this.prisma.conversation.create({
         data: {
           customer_id: customer.id,
-          advisor_id: advisor?.id,
+          agent_id: agent?.id,
           channel_id: channel.id,
           session_id: session.id,
           created_by: data.created_by,
@@ -106,7 +165,7 @@ export class ConversationsService {
         },
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
           messages: {
@@ -116,6 +175,8 @@ export class ConversationsService {
           },
         },
       });
+
+      return this.transformToResponseDto(conversation);
     } catch (error) {
       if (error.code === 'P2002') {
         const target = error.meta?.target?.join(', ') || 'field';
@@ -130,11 +191,11 @@ export class ConversationsService {
 
   async findAll({ skip = 0, take = 10 }: { skip?: number; take?: number }) {
     try {
-      return this.prisma.conversation.findMany({
+      const conversations = await this.prisma.conversation.findMany({
         where: { status: Status.active }, // Exclude both archive and inactive
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
           messages: {
@@ -147,6 +208,7 @@ export class ConversationsService {
         skip,
         take,
       });
+      return conversations.map((conv) => this.transformToResponseDto(conv));
     } catch (error) {
       throw new BadRequestException('Failed to fetch conversations');
     }
@@ -161,7 +223,7 @@ export class ConversationsService {
         where: { id },
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
           messages: {
@@ -174,7 +236,7 @@ export class ConversationsService {
       if (!conversation || conversation.status !== Status.active) {
         throw new NotFoundException(`Conversation with ID "${id}" not found`);
       }
-      return conversation;
+      return this.transformToResponseDto(conversation);
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -220,12 +282,12 @@ export class ConversationsService {
         }
       }
 
-      return this.prisma.conversation.update({
+      const conversation = await this.prisma.conversation.update({
         where: { id },
         data: updateData,
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
           messages: {
@@ -234,6 +296,7 @@ export class ConversationsService {
           },
         },
       });
+      return this.transformToResponseDto(conversation);
     } catch (error) {
       if (error.code === 'P2002') {
         const target = error.meta?.target?.join(', ') || 'field';
@@ -249,7 +312,7 @@ export class ConversationsService {
     }
     await this.findOne(id); // Verify it exists
     try {
-      return this.prisma.conversation.update({
+      const conversation = await this.prisma.conversation.update({
         where: { id },
         data: {
           status: Status.inactive,
@@ -257,11 +320,12 @@ export class ConversationsService {
         },
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
         },
       });
+      return this.transformToResponseDto(conversation);
     } catch (error) {
       throw new BadRequestException('Failed to delete conversation');
     }
@@ -273,7 +337,7 @@ export class ConversationsService {
     }
     await this.findOne(id); // Verify it exists
     try {
-      return this.prisma.conversation.update({
+      const conversation = await this.prisma.conversation.update({
         where: { id },
         data: {
           status: Status.archive,
@@ -281,11 +345,12 @@ export class ConversationsService {
         },
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
         },
       });
+      return this.transformToResponseDto(conversation);
     } catch (error) {
       throw new BadRequestException('Failed to archive conversation');
     }
@@ -296,14 +361,14 @@ export class ConversationsService {
       throw new BadRequestException('Invalid customer ID format');
     }
     try {
-      return this.prisma.conversation.findMany({
+      const conversations = await this.prisma.conversation.findMany({
         where: {
           customer_id: customerId,
           status: Status.active,
         },
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
           messages: {
@@ -314,6 +379,7 @@ export class ConversationsService {
         },
         orderBy: { created_at: 'desc' },
       });
+      return conversations.map((conv) => this.transformToResponseDto(conv));
     } catch (error) {
       throw new BadRequestException(
         'Failed to fetch conversations by customer',
@@ -323,11 +389,11 @@ export class ConversationsService {
 
   async findByStatus(status: Status) {
     try {
-      return this.prisma.conversation.findMany({
+      const conversations = await this.prisma.conversation.findMany({
         where: { status },
         include: {
           customer: true,
-          advisor: true,
+          agent: true,
           channel: true,
           session: true,
           messages: {
@@ -338,6 +404,7 @@ export class ConversationsService {
         },
         orderBy: { created_at: 'desc' },
       });
+      return conversations.map((conv) => this.transformToResponseDto(conv));
     } catch (error) {
       throw new BadRequestException('Failed to fetch conversations by status');
     }
