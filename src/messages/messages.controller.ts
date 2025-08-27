@@ -40,7 +40,12 @@ export class MessagesController {
     description: 'Message created successfully',
     type: MessageResponseDto,
   })
-  @ApiBadRequestResponse({ description: 'Invalid input data' })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    schema: {
+      example: { statusCode: 400, message: 'Invalid conversation ID format' },
+    },
+  })
   @ApiBody({ type: CreateMessageDto })
   create(@Body() body: CreateMessageDto) {
     return this.messagesService.create(body);
@@ -55,14 +60,37 @@ export class MessagesController {
     description: 'List of messages',
     type: [MessageResponseDto],
   })
+  @ApiBadRequestResponse({
+    description: 'Invalid conversation ID format or failed to fetch messages',
+    schema: {
+      example: { statusCode: 400, message: 'Invalid conversation ID format' },
+    },
+  })
   @ApiQuery({
     name: 'conversation_id',
     required: false,
     description: 'Optional conversation ID to filter messages',
     type: String,
   })
-  findAll(@Query('conversation_id') conversationId?: string) {
-    return this.messagesService.findAll(conversationId);
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (1-based, default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of messages per page (default: 10)',
+  })
+  findAll(
+    @Query('conversation_id') conversationId?: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    const skip = (page - 1) * limit;
+    return this.messagesService.findAll(conversationId, { skip, take: limit });
   }
 
   @Get(':id')
@@ -72,8 +100,21 @@ export class MessagesController {
     description: 'Message found',
     type: MessageResponseDto,
   })
-  @ApiNotFoundResponse({ description: 'Message not found' })
-  @ApiBadRequestResponse({ description: 'Invalid ID format' })
+  @ApiNotFoundResponse({
+    description: 'Message not found',
+    schema: {
+      example: {
+        statusCode: 404,
+        message: 'Message with ID "507f1f77bcf86cd799439016" not found',
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid ID format',
+    schema: {
+      example: { statusCode: 400, message: 'Invalid message ID format' },
+    },
+  })
   @ApiParam({ name: 'id', description: 'Message ID', type: String })
   findOne(@Param('id') id: string) {
     return this.messagesService.findOne(id);
@@ -86,8 +127,21 @@ export class MessagesController {
     description: 'Message updated successfully',
     type: MessageResponseDto,
   })
-  @ApiNotFoundResponse({ description: 'Message not found' })
-  @ApiBadRequestResponse({ description: 'Invalid ID format or input data' })
+  @ApiNotFoundResponse({
+    description: 'Message not found',
+    schema: {
+      example: {
+        statusCode: 404,
+        message: 'Message with ID "507f1f77bcf86cd799439016" not found',
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid ID format or input data',
+    schema: {
+      example: { statusCode: 400, message: 'Invalid message ID format' },
+    },
+  })
   @ApiParam({ name: 'id', description: 'Message ID', type: String })
   @ApiBody({ type: UpdateMessageDto })
   update(@Param('id') id: string, @Body() body: UpdateMessageDto) {
@@ -100,28 +154,23 @@ export class MessagesController {
     status: 200,
     description: 'Message soft deleted successfully',
   })
-  @ApiNotFoundResponse({ description: 'Message not found' })
-  @ApiBadRequestResponse({ description: 'Invalid ID format' })
+  @ApiNotFoundResponse({
+    description: 'Message not found',
+    schema: {
+      example: {
+        statusCode: 404,
+        message: 'Message with ID "507f1f77bcf86cd799439016" not found',
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid ID format',
+    schema: {
+      example: { statusCode: 400, message: 'Invalid message ID format' },
+    },
+  })
   @ApiParam({ name: 'id', description: 'Message ID', type: String })
   remove(@Param('id') id: string) {
     return this.messagesService.remove(id);
-  }
-
-  @Get('conversation/:conversationId')
-  @ApiOperation({ summary: 'Get messages by conversation ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'List of messages for conversation',
-    type: [MessageResponseDto],
-  })
-  @ApiNotFoundResponse({ description: 'Conversation not found' })
-  @ApiBadRequestResponse({ description: 'Invalid ID format' })
-  @ApiParam({
-    name: 'conversationId',
-    description: 'Conversation ID',
-    type: String,
-  })
-  getMessagesByConversation(@Param('conversationId') conversationId: string) {
-    return this.messagesService.getMessagesByConversation(conversationId);
   }
 }

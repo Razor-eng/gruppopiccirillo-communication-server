@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConversationsService } from './conversations.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { Status, ChannelName, SessionStatus } from '../types/enums';
@@ -37,7 +37,6 @@ describe('ConversationsService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
       ],
     }).compile();
-
     service = module.get<ConversationsService>(ConversationsService);
     jest.clearAllMocks();
   });
@@ -64,7 +63,6 @@ describe('ConversationsService', () => {
         },
         status: Status.active,
       };
-
       const mockCustomer = { ...dto.customer };
       const mockChannel = { ...dto.channel };
       const mockSession = { ...dto.session };
@@ -75,14 +73,11 @@ describe('ConversationsService', () => {
         session_id: mockSession.id,
         status: Status.active,
       };
-
       mockPrismaService.customer.upsert.mockResolvedValue(mockCustomer);
       mockPrismaService.channel.upsert.mockResolvedValue(mockChannel);
       mockPrismaService.session.upsert.mockResolvedValue(mockSession);
       mockPrismaService.conversation.create.mockResolvedValue(expectedResult);
-
       const result = await service.create(dto);
-
       expect(mockPrismaService.customer.upsert).toHaveBeenCalled();
       expect(mockPrismaService.channel.upsert).toHaveBeenCalled();
       expect(mockPrismaService.session.upsert).toHaveBeenCalled();
@@ -105,7 +100,6 @@ describe('ConversationsService', () => {
           status: SessionStatus.open,
         },
       };
-
       await expect(service.create(dto)).rejects.toThrow(
         'Customer must have at least one identifier',
       );
@@ -126,24 +120,44 @@ describe('ConversationsService', () => {
           status: SessionStatus.open,
         },
       };
-
       await expect(service.create(dto)).rejects.toThrow(
         'Invalid customer ID format',
+      );
+    });
+
+    it('should throw error for duplicate email', async () => {
+      const dto: CreateConversationDto = {
+        customer: {
+          id: '507f1f77bcf86cd799439011',
+          name: 'John Doe',
+          email: 'john@example.com',
+        },
+        channel: {
+          id: '507f1f77bcf86cd799439013',
+          name: ChannelName.waba,
+        },
+        session: {
+          id: '507f1f77bcf86cd799439014',
+          status: SessionStatus.open,
+        },
+      };
+      mockPrismaService.customer.upsert.mockRejectedValue({
+        code: 'P2002',
+        meta: { target: ['email'] },
+      });
+      await expect(service.create(dto)).rejects.toThrow(
+        'Duplicate email found',
       );
     });
   });
 
   describe('findAll', () => {
-    it('should return all non-archived conversations', async () => {
-      const expectedResult = [
-        { id: 'conv1', status: Status.active },
-        { id: 'conv2', status: Status.inactive },
-      ];
+    it('should return all active conversations', async () => {
+      const expectedResult = [{ id: 'conv1', status: Status.active }];
       mockPrismaService.conversation.findMany.mockResolvedValue(expectedResult);
-
-      const result = await service.findAll();
+      const result = await service.findAll({ skip: 0, take: 10 });
       expect(mockPrismaService.conversation.findMany).toHaveBeenCalledWith({
-        where: { status: { not: Status.archive } },
+        where: { status: Status.active },
         include: {
           customer: true,
           advisor: true,
@@ -154,6 +168,8 @@ describe('ConversationsService', () => {
           },
         },
         orderBy: { created_at: 'desc' },
+        skip: 0,
+        take: 10,
       });
       expect(result).toEqual(expectedResult);
     });
@@ -166,7 +182,6 @@ describe('ConversationsService', () => {
       mockPrismaService.conversation.findUnique.mockResolvedValue(
         expectedResult,
       );
-
       const result = await service.findOne(id);
       expect(mockPrismaService.conversation.findUnique).toHaveBeenCalledWith({
         where: { id },
@@ -188,7 +203,6 @@ describe('ConversationsService', () => {
     it('should throw NotFoundException if conversation not found', async () => {
       const id = '507f1f77bcf86cd799439015';
       mockPrismaService.conversation.findUnique.mockResolvedValue(null);
-
       await expect(service.findOne(id)).rejects.toThrow(NotFoundException);
     });
   });
@@ -198,10 +212,11 @@ describe('ConversationsService', () => {
       const id = '507f1f77bcf86cd799439015';
       const dto: UpdateConversationDto = { status: Status.inactive };
       const expectedResult = { id, status: Status.inactive };
-
-      mockPrismaService.conversation.findUnique.mockResolvedValue({ id });
+      mockPrismaService.conversation.findUnique.mockResolvedValue({
+        id,
+        status: Status.active,
+      });
       mockPrismaService.conversation.update.mockResolvedValue(expectedResult);
-
       const result = await service.update(id, dto);
       expect(mockPrismaService.conversation.update).toHaveBeenCalled();
       expect(result).toEqual(expectedResult);
@@ -212,16 +227,17 @@ describe('ConversationsService', () => {
     it('should soft delete a conversation', async () => {
       const id = '507f1f77bcf86cd799439015';
       const expectedResult = { id, status: Status.inactive };
-
-      mockPrismaService.conversation.findUnique.mockResolvedValue({ id });
+      mockPrismaService.conversation.findUnique.mockResolvedValue({
+        id,
+        status: Status.active,
+      });
       mockPrismaService.conversation.update.mockResolvedValue(expectedResult);
-
       const result = await service.remove(id);
       expect(mockPrismaService.conversation.update).toHaveBeenCalledWith({
         where: { id },
         data: {
           status: Status.inactive,
-          updated_at: expect.any(Date), // Fixed: use expect.any(Date)
+          updated_at: expect.any(Date),
         },
         include: {
           customer: true,
@@ -238,16 +254,17 @@ describe('ConversationsService', () => {
     it('should archive a conversation', async () => {
       const id = '507f1f77bcf86cd799439015';
       const expectedResult = { id, status: Status.archive };
-
-      mockPrismaService.conversation.findUnique.mockResolvedValue({ id });
+      mockPrismaService.conversation.findUnique.mockResolvedValue({
+        id,
+        status: Status.active,
+      });
       mockPrismaService.conversation.update.mockResolvedValue(expectedResult);
-
       const result = await service.archive(id);
       expect(mockPrismaService.conversation.update).toHaveBeenCalledWith({
         where: { id },
         data: {
           status: Status.archive,
-          updated_at: expect.any(Date), // Fixed: use expect.any(Date)
+          updated_at: expect.any(Date),
         },
         include: {
           customer: true,

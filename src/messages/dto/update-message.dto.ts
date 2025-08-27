@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsString,
-  IsOptional,
-  IsArray,
-  ValidateNested,
-  IsEnum,
-} from 'class-validator';
+import { IsString, IsOptional, ValidateNested, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ActiveStatus, AttachType } from '../../types/enums';
 
@@ -46,13 +40,12 @@ export class UpdateMessageDto {
   status?: ActiveStatus;
 
   @ApiProperty({
-    type: [AttachmentDto],
-    description: 'Attachments',
+    type: AttachmentDto,
+    description: 'Attachment',
     required: false,
   })
-  @IsArray()
-  @ValidateNested({ each: true })
+  @ValidateNested()
   @Type(() => AttachmentDto)
   @IsOptional()
-  attachments?: AttachmentDto[];
+  attachments?: AttachmentDto;
 }

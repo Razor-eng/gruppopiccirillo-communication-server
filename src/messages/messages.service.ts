@@ -28,7 +28,6 @@ export class MessagesService {
       const conversation = await this.prisma.conversation.findUnique({
         where: { id: data.conversation_id },
       });
-
       if (!conversation) {
         throw new NotFoundException(
           `Conversation with ID "${data.conversation_id}" not found`,
@@ -36,7 +35,6 @@ export class MessagesService {
       }
 
       let attachment_id: string | null = null;
-
       // Create attachment if provided
       if (data.attachment) {
         const attachment = await this.prisma.attachment.create({
@@ -68,7 +66,8 @@ export class MessagesService {
         throw error;
       }
       if (error.code === 'P2002') {
-        throw new BadRequestException('Duplicate entry found');
+        const target = error.meta?.target?.join(', ') || 'field';
+        throw new BadRequestException(`Duplicate ${target} found`);
       }
       if (error.code === 'P2003') {
         throw new BadRequestException('Foreign key constraint failed');
@@ -77,27 +76,26 @@ export class MessagesService {
     }
   }
 
-  async findAll(conversationId?: string) {
+  async findAll(
+    conversationId?: string,
+    { skip = 0, take = 10 }: { skip?: number; take?: number } = {},
+  ) {
     const where: any = { status: ActiveStatus.active };
-
     if (conversationId) {
       if (!this.isValidObjectId(conversationId)) {
         throw new BadRequestException('Invalid conversation ID format');
       }
-
       // Verify conversation exists if conversationId is provided
       try {
         const conversationExists = await this.prisma.conversation.findUnique({
           where: { id: conversationId },
           select: { id: true },
         });
-
         if (!conversationExists) {
           throw new NotFoundException(
             `Conversation with ID "${conversationId}" not found`,
           );
         }
-
         where.conversation_id = conversationId;
       } catch (error) {
         if (error instanceof NotFoundException) {
@@ -106,7 +104,6 @@ export class MessagesService {
         throw new BadRequestException('Failed to fetch messages');
       }
     }
-
     try {
       return this.prisma.message.findMany({
         where,
@@ -114,6 +111,8 @@ export class MessagesService {
           attachment: true,
         },
         orderBy: { timestamp: 'desc' },
+        skip,
+        take,
       });
     } catch (error) {
       throw new BadRequestException('Failed to fetch messages');
@@ -124,7 +123,6 @@ export class MessagesService {
     if (!this.isValidObjectId(id)) {
       throw new BadRequestException('Invalid message ID format');
     }
-
     try {
       const message = await this.prisma.message.findUnique({
         where: { id, status: ActiveStatus.active },
@@ -132,11 +130,9 @@ export class MessagesService {
           attachment: true,
         },
       });
-
       if (!message) {
         throw new NotFoundException(`Message with ID "${id}" not found`);
       }
-
       return message;
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -150,9 +146,7 @@ export class MessagesService {
     if (!this.isValidObjectId(id)) {
       throw new BadRequestException('Invalid message ID format');
     }
-
     await this.findOne(id); // Verify it exists
-
     try {
       return this.prisma.message.update({
         where: { id },
@@ -173,9 +167,7 @@ export class MessagesService {
     if (!this.isValidObjectId(id)) {
       throw new BadRequestException('Invalid message ID format');
     }
-
     await this.findOne(id); // Verify it exists
-
     try {
       return this.prisma.message.update({
         where: { id },
@@ -188,42 +180,6 @@ export class MessagesService {
     }
   }
 
-  async getMessagesByConversation(conversationId: string) {
-    if (!this.isValidObjectId(conversationId)) {
-      throw new BadRequestException('Invalid conversation ID format');
-    }
-
-    try {
-      const conversationExists = await this.prisma.conversation.findUnique({
-        where: { id: conversationId },
-        select: { id: true }, // Only check existence
-      });
-
-      if (!conversationExists) {
-        throw new NotFoundException(
-          `Conversation with ID "${conversationId}" not found`,
-        );
-      }
-
-      return this.prisma.message.findMany({
-        where: {
-          conversation_id: conversationId,
-          status: ActiveStatus.active,
-        },
-        include: {
-          attachment: true,
-        },
-        orderBy: { timestamp: 'asc' },
-      });
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new BadRequestException('Failed to fetch messages by conversation');
-    }
-  }
-
-  // Additional useful methods
   async findByDirection(direction: string) {
     try {
       return this.prisma.message.findMany({
@@ -260,12 +216,10 @@ export class MessagesService {
     }
   }
 
-  // Optional: Method to get message with full conversation details when needed
   async findOneWithConversation(id: string) {
     if (!this.isValidObjectId(id)) {
       throw new BadRequestException('Invalid message ID format');
     }
-
     try {
       const message = await this.prisma.message.findUnique({
         where: { id, status: ActiveStatus.active },
@@ -281,11 +235,9 @@ export class MessagesService {
           },
         },
       });
-
       if (!message) {
         throw new NotFoundException(`Message with ID "${id}" not found`);
       }
-
       return message;
     } catch (error) {
       if (error instanceof NotFoundException) {

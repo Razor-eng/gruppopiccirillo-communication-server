@@ -11,11 +11,13 @@ async function bootstrap() {
   const port = configService.get<number>('PORT') || 5000;
 
   // Enable CORS
-  // app.enableCors({
-  //   origin: configService.get('ALLOWED_ORIGINS', 'http://localhost:3000'),
-  //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  //   credentials: true,
-  // });
+  app.enableCors({
+    origin: configService
+      .get<string>('ALLOWED_ORIGINS', 'http://localhost:3000')
+      .split(','),
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 
   // Enable validation globally
   app.useGlobalPipes(

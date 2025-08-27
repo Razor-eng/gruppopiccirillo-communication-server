@@ -21,15 +21,12 @@ export class ConversationsService {
     if (!this.isValidObjectId(data.customer.id)) {
       throw new BadRequestException('Invalid customer ID format');
     }
-
     if (data.advisor && !this.isValidObjectId(data.advisor.id)) {
       throw new BadRequestException('Invalid advisor ID format');
     }
-
     if (!this.isValidObjectId(data.channel.id)) {
       throw new BadRequestException('Invalid channel ID format');
     }
-
     if (!this.isValidObjectId(data.session.id)) {
       throw new BadRequestException('Invalid session ID format');
     }
@@ -67,7 +64,6 @@ export class ConversationsService {
 
       // Explicitly type the advisor variable
       let advisor: { id: string } | null = null;
-
       if (data.advisor) {
         const advisorResult = await this.prisma.advisor.upsert({
           where: { id: data.advisor.id },
@@ -122,7 +118,8 @@ export class ConversationsService {
       });
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new BadRequestException('Duplicate entry found');
+        const target = error.meta?.target?.join(', ') || 'field';
+        throw new BadRequestException(`Duplicate ${target} found`);
       }
       if (error.code === 'P2003') {
         throw new BadRequestException('Foreign key constraint failed');
@@ -131,10 +128,10 @@ export class ConversationsService {
     }
   }
 
-  async findAll() {
+  async findAll({ skip = 0, take = 10 }: { skip?: number; take?: number }) {
     try {
       return this.prisma.conversation.findMany({
-        where: { status: { not: Status.archive } },
+        where: { status: Status.active }, // Exclude both archive and inactive
         include: {
           customer: true,
           advisor: true,
@@ -147,6 +144,8 @@ export class ConversationsService {
           },
         },
         orderBy: { created_at: 'desc' },
+        skip,
+        take,
       });
     } catch (error) {
       throw new BadRequestException('Failed to fetch conversations');
@@ -157,7 +156,6 @@ export class ConversationsService {
     if (!this.isValidObjectId(id)) {
       throw new BadRequestException('Invalid conversation ID format');
     }
-
     try {
       const conversation = await this.prisma.conversation.findUnique({
         where: { id },
@@ -173,11 +171,9 @@ export class ConversationsService {
           },
         },
       });
-
-      if (!conversation || conversation.status === Status.archive) {
+      if (!conversation || conversation.status !== Status.active) {
         throw new NotFoundException(`Conversation with ID "${id}" not found`);
       }
-
       return conversation;
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -191,9 +187,7 @@ export class ConversationsService {
     if (!this.isValidObjectId(id)) {
       throw new BadRequestException('Invalid conversation ID format');
     }
-
     await this.findOne(id); // Verify it exists
-
     try {
       const updateData: any = {
         status: data.status,
@@ -204,19 +198,25 @@ export class ConversationsService {
 
       // Handle session update if provided
       if (data.session) {
+        if (data.session.id && !this.isValidObjectId(data.session.id)) {
+          throw new BadRequestException('Invalid session ID format');
+        }
         // First get current conversation to get session_id
         const current = await this.prisma.conversation.findUnique({
           where: { id },
         });
-
         if (current) {
-          // Update the existing session
+          // Update the session (use provided session ID or current session_id)
+          const sessionId = data.session.id || current.session_id;
           await this.prisma.session.update({
-            where: { id: current.session_id },
+            where: { id: sessionId },
             data: {
               status: data.session.status,
             },
           });
+          if (data.session.id) {
+            updateData.session_id = data.session.id; // Update session_id if provided
+          }
         }
       }
 
@@ -235,6 +235,10 @@ export class ConversationsService {
         },
       });
     } catch (error) {
+      if (error.code === 'P2002') {
+        const target = error.meta?.target?.join(', ') || 'field';
+        throw new BadRequestException(`Duplicate ${target} found`);
+      }
       throw new BadRequestException('Failed to update conversation');
     }
   }
@@ -243,9 +247,7 @@ export class ConversationsService {
     if (!this.isValidObjectId(id)) {
       throw new BadRequestException('Invalid conversation ID format');
     }
-
     await this.findOne(id); // Verify it exists
-
     try {
       return this.prisma.conversation.update({
         where: { id },
@@ -269,9 +271,7 @@ export class ConversationsService {
     if (!this.isValidObjectId(id)) {
       throw new BadRequestException('Invalid conversation ID format');
     }
-
     await this.findOne(id); // Verify it exists
-
     try {
       return this.prisma.conversation.update({
         where: { id },
@@ -291,17 +291,15 @@ export class ConversationsService {
     }
   }
 
-  // Additional useful methods
   async findByCustomer(customerId: string) {
     if (!this.isValidObjectId(customerId)) {
       throw new BadRequestException('Invalid customer ID format');
     }
-
     try {
       return this.prisma.conversation.findMany({
         where: {
           customer_id: customerId,
-          status: { not: Status.archive },
+          status: Status.active,
         },
         include: {
           customer: true,
