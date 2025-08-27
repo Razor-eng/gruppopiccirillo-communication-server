@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
-import { ActiveStatus } from 'src/types/enums';
+import { ActiveStatus } from '../types/enums';
 import { Direction } from '@prisma/client';
 
 @Injectable()

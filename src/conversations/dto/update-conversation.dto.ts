@@ -7,7 +7,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Status, SessionStatus } from 'src/types/enums';
+import { Status, SessionStatus } from '../../types/enums';
 
 // ===== Session DTO =====
 class SessionDto {

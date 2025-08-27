@@ -7,7 +7,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ActiveStatus, AttachType } from 'src/types/enums';
+import { ActiveStatus, AttachType } from '../../types/enums';
 
 class AttachmentDto {
   @ApiProperty({

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Direction, ActiveStatus, AttachType } from 'src/types/enums';
+import { Direction, ActiveStatus, AttachType } from '../../types/enums';
 
 class AttachmentResponseDto {
   @ApiProperty({ enum: AttachType, description: 'Attachment type' })

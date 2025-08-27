@@ -22,7 +22,7 @@ import { ConversationsService } from './conversations.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { ConversationResponseDto } from './dto/conversation-response.dto';
-import { ApiKeyGuard } from 'src/common/guards/api-key.guard';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
 
 @ApiTags('conversations')
 @ApiSecurity('apiKey')

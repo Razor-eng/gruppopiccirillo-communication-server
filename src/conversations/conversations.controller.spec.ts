@@ -3,7 +3,8 @@ import { ConversationsController } from './conversations.controller';
 import { ConversationsService } from './conversations.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
-import { Status, ChannelName, SessionStatus } from 'src/types/enums';
+import { Status, ChannelName, SessionStatus } from '../types/enums';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
 
 const mockConversationsService = {
   create: jest.fn(),
@@ -12,6 +13,11 @@ const mockConversationsService = {
   update: jest.fn(),
   remove: jest.fn(),
   archive: jest.fn(),
+};
+
+// Mock the ApiKeyGuard
+const mockApiKeyGuard = {
+  canActivate: jest.fn(() => true),
 };
 
 describe('ConversationsController', () => {
@@ -23,7 +29,10 @@ describe('ConversationsController', () => {
       providers: [
         { provide: ConversationsService, useValue: mockConversationsService },
       ],
-    }).compile();
+    })
+      .overrideGuard(ApiKeyGuard)
+      .useValue(mockApiKeyGuard)
+      .compile();
 
     controller = module.get<ConversationsController>(ConversationsController);
     jest.clearAllMocks();
@@ -37,16 +46,16 @@ describe('ConversationsController', () => {
     it('should create a conversation', async () => {
       const dto: CreateConversationDto = {
         customer: {
-          id: 'cust123',
+          id: '507f1f77bcf86cd799439011',
           name: 'John Doe',
           email: 'john@example.com',
         },
         channel: {
-          id: 'chan123',
+          id: '507f1f77bcf86cd799439013',
           name: ChannelName.waba,
         },
         session: {
-          id: 'sess123',
+          id: '507f1f77bcf86cd799439014',
           status: SessionStatus.open,
         },
       };

@@ -9,7 +9,7 @@ import {
   Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Status, ChannelName, SessionStatus } from 'src/types/enums';
+import { Status, ChannelName, SessionStatus } from '../../types/enums';
 
 // ===== Customer DTO =====
 class CustomerDto {

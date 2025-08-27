@@ -24,7 +24,7 @@ import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { MessageResponseDto } from './dto/message-response.dto';
-import { ApiKeyGuard } from 'src/common/guards/api-key.guard';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
 
 @ApiTags('messages')
 @ApiSecurity('apiKey')

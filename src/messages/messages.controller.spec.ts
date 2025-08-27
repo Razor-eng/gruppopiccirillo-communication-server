@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
-import { Channel } from '@prisma/client';
+import { Direction } from '../types/enums';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
 
 const mockMessagesService = {
   create: jest.fn(),
@@ -15,17 +15,22 @@ const mockMessagesService = {
   getMessagesByConversation: jest.fn(),
 };
 
+// Mock the ApiKeyGuard
+const mockApiKeyGuard = {
+  canActivate: jest.fn(() => true),
+};
+
 describe('MessagesController', () => {
   let controller: MessagesController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MessagesController],
-      providers: [
-        { provide: MessagesService, useValue: mockMessagesService },
-        { provide: PrismaService, useValue: {} },
-      ],
-    }).compile();
+      providers: [{ provide: MessagesService, useValue: mockMessagesService }],
+    })
+      .overrideGuard(ApiKeyGuard)
+      .useValue(mockApiKeyGuard)
+      .compile();
 
     controller = module.get<MessagesController>(MessagesController);
     jest.clearAllMocks();
@@ -38,10 +43,9 @@ describe('MessagesController', () => {
   describe('create', () => {
     it('should create a message', async () => {
       const dto: CreateMessageDto = {
-        conversation_id: 'conv123',
-        channel: Channel.watsonx,
-        type: 'text',
-        direction: 'incoming',
+        conversation_id: '507f1f77bcf86cd799439015',
+        content: 'Hello',
+        direction: Direction.incoming,
       };
       const expectedResult = { id: 'msg123', ...dto };
       mockMessagesService.create.mockResolvedValue(expectedResult);
@@ -59,6 +63,17 @@ describe('MessagesController', () => {
 
       const result = await controller.findAll();
       expect(result).toEqual(expectedResult);
+      expect(mockMessagesService.findAll).toHaveBeenCalled();
+    });
+
+    it('should return messages filtered by conversation', async () => {
+      const conversationId = '507f1f77bcf86cd799439015';
+      const expectedResult = [{ id: 'msg1' }];
+      mockMessagesService.findAll.mockResolvedValue(expectedResult);
+
+      const result = await controller.findAll(conversationId);
+      expect(result).toEqual(expectedResult);
+      expect(mockMessagesService.findAll).toHaveBeenCalledWith(conversationId);
     });
   });
 
@@ -70,6 +85,7 @@ describe('MessagesController', () => {
 
       const result = await controller.findOne(id);
       expect(result).toEqual(expectedResult);
+      expect(mockMessagesService.findOne).toHaveBeenCalledWith(id);
     });
   });
 
@@ -82,6 +98,7 @@ describe('MessagesController', () => {
 
       const result = await controller.update(id, dto);
       expect(result).toEqual(expectedResult);
+      expect(mockMessagesService.update).toHaveBeenCalledWith(id, dto);
     });
   });
 
@@ -93,6 +110,7 @@ describe('MessagesController', () => {
 
       const result = await controller.remove(id);
       expect(result).toEqual(expectedResult);
+      expect(mockMessagesService.remove).toHaveBeenCalledWith(id);
     });
   });
 

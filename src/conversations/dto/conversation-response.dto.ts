@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Status, ChannelName, SessionStatus } from 'src/types/enums';
-import { MessageResponseDto } from 'src/messages/dto/message-response.dto';
+import { Status, ChannelName, SessionStatus } from '../../types/enums';
+import { MessageResponseDto } from '../../messages/dto/message-response.dto';
 
 class CustomerResponseDto {
   @ApiProperty({ description: 'Customer ID' })

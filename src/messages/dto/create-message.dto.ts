@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsEnum, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Direction, AttachType } from 'src/types/enums';
+import { Direction, AttachType } from '../../types/enums';
 
 class AttachmentDto {
   @ApiProperty({ enum: AttachType, description: 'Attachment type' })
